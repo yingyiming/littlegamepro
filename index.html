@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寻宝游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1 class="center-title">寻宝游戏</h1>
+    <img id="treasure-image" src="image/image1.jpg" alt="宝藏图片">
+    <button id="start-button" class="center-button">开始寻宝</button>
+    <br>
+    <button id="next-button" class="center-button" style="display:none;">下一步</button>
+    <br>
+    <!-- 背景音乐 -->
+    <audio id="background-music" loop>
+        <source src="李茂川-Call of Silence (Clear Sky Remix).mp3" type="audio/mp3">
+    </audio>
+    <button id="toggle-music" class="center-button">播放音乐</button>
+    <br>
+    <div id="result" class="result-overlay"></div> <!-- 结果显示区域在按钮下面 -->
+
+    <script src="treasure.js"></script>
+    <script>
+        const images = [
+            "image/image1.jpg",
+            "image/image2.jpg",
+            "image/image3.jpg",
+            "image/image4.jpg",
+            "image/image5.jpg"
+        ];
+
+        let currentStep = 0;
+        let isMusicPlaying = false;
+        let steps = []; // 确保 steps 数组初始化
+
+        async function displayResult(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = ''; // 清空现有内容
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = message;
+            resultDiv.appendChild(messageDiv);
+        }
+
+        function updateImage(step) {
+            const treasureImage = document.getElementById('treasure-image');
+            treasureImage.src = images[step];
+            treasureImage.style.display = 'block'; // 显示图片
+        }
+
+        async function showNextStep() {
+            console.log(`当前步骤: ${currentStep}`); // Debug: 打印当前步骤
+            if (currentStep < steps.length) {
+                try {
+                    updateImage(currentStep); // 更新图片
+                    const clue = await steps[currentStep](); // 获取当前步骤的结果
+                    displayResult(clue); // 显示结果
+                    currentStep++; // 移动到下一个步骤
+                } catch (error) {
+                    displayResult("任务失败: " + error);
+                    currentStep = steps.length; // 停止后续步骤
+                }
+            } else {
+                displayResult("所有步骤已完成!");
+                document.getElementById('next-button').style.display = 'none'; // 隐藏下一步按钮
+            }
+        }
+
+        async function findTreasure() {
+            // 初始化步骤数组
+            steps = [
+                TreasureMap.getInitialClue,
+                TreasureMap.decodeAncientScript,
+                TreasureMap.searchTemple,
+                TreasureMap.findKey,
+                TreasureMap.openTreasureBox
+            ];
+
+            // 调试：输出步骤数组内容
+            console.log("步骤数组:", steps);
+
+            // 显示下一步按钮
+            document.getElementById('next-button').style.display = 'block';
+            await showNextStep(); // 显示第一步
+        }
+
+        // 点击开始按钮时开始播放音乐
+        document.getElementById('start-button').addEventListener('click', () => {
+            currentStep = 0; // 重置步骤
+            updateImage(currentStep); // 设置初始图片
+            findTreasure(); // 开始寻宝
+            document.getElementById('result').innerHTML = ''; // 清空结果
+            displayResult("欢迎来到寻宝游戏！点击下一步开始冒险。"); // 显示欢迎信息
+
+            // 播放背景音乐
+            const music = document.getElementById('background-music');
+            if (!isMusicPlaying) {
+                music.play();
+                isMusicPlaying = true;
+                document.getElementById('toggle-music').textContent = '暂停音乐';
+            }
+        });
+
+        // 切换音乐播放状态
+        document.getElementById('toggle-music').addEventListener('click', () => {
+            const music = document.getElementById('background-music');
+            if (music.paused) {
+                music.play();
+                document.getElementById('toggle-music').textContent = '暂停音乐';
+            } else {
+                music.pause();
+                document.getElementById('toggle-music').textContent = '播放音乐';
+            }
+        });
+
+        // 存储玩家信息
+        function savePlayerData(playerId, nickname, gameHistory) {
+            const playerData = { playerId, nickname, gameHistory };
+            localStorage.setItem('playerData', JSON.stringify(playerData));
+        }
+
+        // 加载玩家信息
+        function loadPlayerData() {
+            const playerData = localStorage.getItem('playerData');
+            if (playerData) {
+                return JSON.parse(playerData);
+            } else {
+                return null;
+            }
+        }
+
+        // 在页面加载时检查是否有历史数据
+        window.addEventListener('load', () => {
+            const playerData = loadPlayerData();
+            if (playerData) {
+                console.log('恢复游戏历史:', playerData.gameHistory);
+                document.getElementById('result').innerHTML = `欢迎回来, ${playerData.nickname}! 继续冒险吧!`;
+            }
+        });
+
+        document.getElementById('next-button').addEventListener('click', showNextStep);
+    </script>
+</body>
+
+</html>
